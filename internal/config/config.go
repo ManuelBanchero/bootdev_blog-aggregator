@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 )
 
@@ -24,22 +23,21 @@ func getConfigFilePath() (string, error) {
 	return configFilePath, nil
 }
 
-func Read() Config {
+func Read() (Config, error) {
 	configPath, err := getConfigFilePath()
 	if err != nil {
-		panic(err)
+		return Config{}, err
 	}
 
-	fmt.Println(configPath)
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
-		panic(err)
+		return Config{}, err
 	}
 
 	var config Config
 	if err := json.Unmarshal(configData, &config); err != nil {
-		panic(err)
+		return Config{}, err
 	}
 
-	return config
+	return config, nil
 }

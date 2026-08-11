@@ -7,7 +7,11 @@ import (
 )
 
 func main() {
-	config := config.Read()
+	config, err := config.Read()
+	if err != nil {
+		fmt.Printf("%w", err)
+		return
+	}
 
 	fmt.Println(config.DbUrl)
 }
