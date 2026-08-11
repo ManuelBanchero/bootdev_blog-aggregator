@@ -7,11 +7,22 @@ import (
 )
 
 func main() {
-	config, err := config.Read()
+	cfg, err := config.Read()
 	if err != nil {
-		fmt.Printf("%w", err)
+		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(config.DbUrl)
+	cfg.CurrentUserName = "mbanchero"
+	cfg.SetUser()
+
+	updatedConfig, err := config.Read()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(updatedConfig.CurrentUserName)
+	fmt.Println(updatedConfig.DbUrl)
+
 }

@@ -41,3 +41,30 @@ func Read() (Config, error) {
 
 	return config, nil
 }
+
+func write(cfg *Config) error {
+	// Get config path
+	configPath, err := getConfigFilePath()
+	if err != nil {
+		return err
+	}
+	// Marshal config to JSON
+	cfgJson, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	// Write file
+	if err := os.WriteFile(configPath, cfgJson, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cfg *Config) SetUser() error {
+	if err := write(cfg); err != nil {
+		return err
+	}
+
+	return nil
+}
