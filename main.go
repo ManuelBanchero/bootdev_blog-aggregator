@@ -2,27 +2,35 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/manuelbanchero/blog-aggregator/internal/commands"
 	"github.com/manuelbanchero/blog-aggregator/internal/config"
 )
 
 func main() {
-	cfg, err := config.Read()
+	c, err := config.Read()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	cfg.CurrentUserName = "mbanchero"
-	cfg.SetUser()
-
-	updatedConfig, err := config.Read()
-	if err != nil {
-		fmt.Println(err)
-		return
+	s := commands.State{
+		Cfg: &c,
 	}
 
-	fmt.Println(updatedConfig.CurrentUserName)
-	fmt.Println(updatedConfig.DbUrl)
+	cmds := commands.Commands{
+		Methods: map[string]func(*commands.State, commands.Command) error{},
+	}
+
+	cmds.Register("login", commands.HandlerLogin)
+
+	fmt.Println(s.Cfg.CurrentUserName)
+
+	args := os.Args
+	if len(args) < 2 {
+		fmt.Println("Must include a command")
+		return
+	}
 
 }
