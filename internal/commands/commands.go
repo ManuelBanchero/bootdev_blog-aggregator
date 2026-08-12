@@ -19,7 +19,7 @@ type Commands struct {
 	Methods map[string]func(*State, Command) error
 }
 
-func (c *Commands) run(s *State, cmd Command) error {
+func (c *Commands) Run(s *State, cmd Command) error {
 	method, ok := c.Methods[cmd.Name]
 	if !ok {
 		return fmt.Errorf("The command does not exists")
