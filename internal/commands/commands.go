@@ -104,3 +104,21 @@ func HandlerResetDB(s *State, cmd Command) error {
 	fmt.Println("All rows from User table has been deleted")
 	return nil
 }
+
+func ListUsers(s *State, cmd Command) error {
+	users, err := s.Db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Error trying to get users, err: %w", err)
+	}
+
+	for _, user := range users {
+		if user.Name == s.Cfg.CurrentUserName {
+			fmt.Printf("* %v (current)\n", user.Name)
+			continue
+		}
+
+		fmt.Printf("* %v\n", user.Name)
+	}
+
+	return nil
+}
