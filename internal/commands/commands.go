@@ -10,6 +10,7 @@ import (
 	"github.com/lib/pq/pqerror"
 	"github.com/manuelbanchero/blog-aggregator/internal/config"
 	"github.com/manuelbanchero/blog-aggregator/internal/database"
+	"github.com/manuelbanchero/blog-aggregator/internal/rss"
 )
 
 type State struct {
@@ -119,6 +120,53 @@ func ListUsers(s *State, cmd Command) error {
 
 		fmt.Printf("* %v\n", user.Name)
 	}
+
+	return nil
+}
+
+func Agg(s *State, cmd Command) error {
+	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(feed.Channel.Title)
+	fmt.Println(feed.Channel.Description)
+	fmt.Println(feed.Channel.Item)
+	fmt.Println(feed.Channel.Link)
+
+	return nil
+}
+
+func AddFeedHandler(s *State, cmd Command) error {
+	if len(cmd.Args) < 2 {
+		return fmt.Errorf("commands.go | the AddFeedHandler expects two arguments, the name and the url.")
+	}
+
+	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("commands.go - AddFeedHandler() | An error has ocurred trying to get the user.\nError: %w", err)
+	}
+
+	feed, err := s.Db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		Name:      cmd.Args[0],
+		Url:       cmd.Args[1],
+		UserID:    user.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("commands.go - AddFeedHandler() | An error has ocurred trying to Create Feed.\nError: %w", err)
+	}
+
+	fmt.Println("Feed has been created successfully")
+	fmt.Println(feed.ID)
+	fmt.Println(feed.CreatedAt)
+	fmt.Println(feed.UpdatedAt)
+	fmt.Println(feed.Name)
+	fmt.Println(feed.Url)
+	fmt.Println(feed.UserID)
 
 	return nil
 }

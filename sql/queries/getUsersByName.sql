@@ -1,5 +1,5 @@
 -- name: GetUser :one
-SELECT FROM 
+SELECT * FROM 
   users
 WHERE
   name = $1;
