@@ -170,3 +170,20 @@ func AddFeedHandler(s *State, cmd Command) error {
 
 	return nil
 }
+
+func FeedHandler(s *State, cmd Command) error {
+	feeds, err := s.Db.GetAllFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("commands.go - FeedHandler() | An error has ocurred trying to get all feeds.\nError: %w", err)
+	}
+
+	for _, feed := range feeds {
+		user, err := s.Db.GetUserById(context.Background(), feed.UserID)
+		if err != nil {
+			return fmt.Errorf("commands.go - FeedHandler | An error has ocurred tyring to get the user by id.\nError: %w", err)
+		}
+		fmt.Printf("- Name: %v\n- URL: %v\n- Username: %v", feed.Name, feed.Url, user.Name)
+	}
+
+	return nil
+}
