@@ -160,6 +160,17 @@ func AddFeedHandler(s *State, cmd Command) error {
 		return fmt.Errorf("commands.go - AddFeedHandler() | An error has ocurred trying to Create Feed.\nError: %w", err)
 	}
 
+	_, err = s.Db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+		UpdatedAt: time.Now().UTC(),
+		CreatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		return fmt.Errorf("commands.go - AddFeedHandler | An error has ocurred trying to follow the new feed created.\nError: %w", err)
+	}
+
 	fmt.Println("Feed has been created successfully")
 	fmt.Println(feed.ID)
 	fmt.Println(feed.CreatedAt)
@@ -184,6 +195,60 @@ func FeedHandler(s *State, cmd Command) error {
 		}
 		fmt.Printf("- Name: %v\n- URL: %v\n- Username: %v", feed.Name, feed.Url, user.Name)
 	}
+
+	return nil
+}
+
+func HandlerFollow(s *State, cmd Command) error {
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("commands.go - HandlerFollow() | The command must include an URL argument")
+	}
+
+	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("commands.go - HandlerFollow() | An error has ocurred trying to get the user by name")
+	}
+
+	feed, err := s.Db.GetFeedByUrl(context.Background(), cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("commands.go - HandlerFollow() | An error has ocurred trying to get the URL")
+	}
+
+	s.Db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+
+	fmt.Println(feed.Name)
+	fmt.Println(user.Name)
+
+	return nil
+}
+
+func HandlerFollowing(s *State, cmd Command) error {
+	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("commands.go - HandlerFollowing | An error has ocurred trying to get the user by name")
+	}
+
+	feedFollows, err := s.Db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return fmt.Errorf("commands.go - HandlerFollowing | An error has ocurred trying to get feed follows for user with ID %v", user.ID)
+	}
+
+	for _, feedFollow := range feedFollows {
+		feed, err := s.Db.GetFeedById(context.Background(), feedFollow.FeedID)
+		if err != nil {
+			return fmt.Errorf("command.go - HandlerFollowing | An error has ocurred trying to get the feed with the id: %v", feedFollow.FeedID)
+		}
+
+		fmt.Println(feed.Name)
+	}
+
+	fmt.Println(user.Name)
 
 	return nil
 }
