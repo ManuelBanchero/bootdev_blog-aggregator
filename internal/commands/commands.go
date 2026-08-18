@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -135,17 +136,20 @@ func ListUsers(s *State, cmd Command) error {
 }
 
 func Agg(s *State, cmd Command) error {
-	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
-	if err != nil {
-		return err
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("commands.go - Agg() | Agg method must include `time_between_reqs` argument")
 	}
 
-	fmt.Println(feed.Channel.Title)
-	fmt.Println(feed.Channel.Description)
-	fmt.Println(feed.Channel.Item)
-	fmt.Println(feed.Channel.Link)
+	timeBetweenRequests, err := time.ParseDuration(cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("commands.go - Agg() | Argument `time between requests` is not a valid one.\nError: %w", err)
+	}
 
-	return nil
+	fmt.Printf("Collecting feeds every %v\n", timeBetweenRequests)
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 }
 
 func AddFeedHandler(s *State, cmd Command, user database.User) error {
@@ -268,4 +272,33 @@ func HandlerUnfollow(s *State, cmd Command, user database.User) error {
 	fmt.Println("Deleted successfully")
 
 	return nil
+}
+
+func scrapeFeeds(s *State) {
+	nextFeed, err := s.Db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		fmt.Printf("commands.go - scrapeFeeds | An error has ocurred trying to get next feed to fetch.\nError: %v", err)
+		return
+	}
+
+	if err := s.Db.MarkedFeedFetched(context.Background(), database.MarkedFeedFetchedParams{
+		LastFetchedAt: sql.NullTime{Time: time.Now().UTC(), Valid: true},
+		UpdatedAt:     time.Now().UTC(),
+		ID:            nextFeed.ID,
+	}); err != nil {
+		fmt.Printf("commands.go - scrapeFeeds | An error has ocurred trying to mark feed as fetched.\nError: %v", err)
+		return
+	}
+
+	feed, err := rss.FetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		fmt.Printf("commands.go - scrapeFeeds | An error has ocurred trying to Fetch feed with URL: %v\nError: %v", nextFeed.Url, err)
+		return
+	}
+
+	for _, item := range feed.Channel.Item {
+		fmt.Println(item.Title)
+	}
+
+	fmt.Println()
 }
