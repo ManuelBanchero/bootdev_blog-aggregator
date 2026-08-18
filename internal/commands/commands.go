@@ -27,6 +27,16 @@ type Commands struct {
 	Methods map[string]func(*State, Command) error
 }
 
+func MiddlewareLoggedIn(handler func(s *State, cmd Command, user database.User) error) func(*State, Command) error {
+	return func(s *State, cmd Command) error {
+		user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
+		if err != nil {
+			return fmt.Errorf("You must be login")
+		}
+		return handler(s, cmd, user)
+	}
+}
+
 func (c *Commands) Run(s *State, cmd Command) error {
 	method, ok := c.Methods[cmd.Name]
 	if !ok {
@@ -138,7 +148,7 @@ func Agg(s *State, cmd Command) error {
 	return nil
 }
 
-func AddFeedHandler(s *State, cmd Command) error {
+func AddFeedHandler(s *State, cmd Command, user database.User) error {
 	if len(cmd.Args) < 2 {
 		return fmt.Errorf("commands.go | the AddFeedHandler expects two arguments, the name and the url.")
 	}
@@ -199,7 +209,7 @@ func FeedHandler(s *State, cmd Command) error {
 	return nil
 }
 
-func HandlerFollow(s *State, cmd Command) error {
+func HandlerFollow(s *State, cmd Command, user database.User) error {
 	if len(cmd.Args) == 0 {
 		return fmt.Errorf("commands.go - HandlerFollow() | The command must include an URL argument")
 	}
@@ -228,7 +238,7 @@ func HandlerFollow(s *State, cmd Command) error {
 	return nil
 }
 
-func HandlerFollowing(s *State, cmd Command) error {
+func HandlerFollowing(s *State, cmd Command, user database.User) error {
 	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
 	if err != nil {
 		return fmt.Errorf("commands.go - HandlerFollowing | An error has ocurred trying to get the user by name")
