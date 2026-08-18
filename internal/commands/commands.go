@@ -249,5 +249,23 @@ func HandlerFollowing(s *State, cmd Command, user database.User) error {
 }
 
 func HandlerUnfollow(s *State, cmd Command, user database.User) error {
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("commands.go - HandlerFollow() | The command must include an URL argument")
+	}
 
+	feed, err := s.Db.GetFeedByUrl(context.Background(), cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("commands.go - HandlerUnFollow() | An error has ocurred trying to get the URL")
+	}
+
+	if err := s.Db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}); err != nil {
+		return fmt.Errorf("commands.go - HandlerUnfollow | An error has ocurred trying to delete the FeedFollow.\nError: %w", err)
+	}
+
+	fmt.Println("Deleted successfully")
+
+	return nil
 }
