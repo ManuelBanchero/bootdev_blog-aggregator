@@ -153,11 +153,6 @@ func AddFeedHandler(s *State, cmd Command, user database.User) error {
 		return fmt.Errorf("commands.go | the AddFeedHandler expects two arguments, the name and the url.")
 	}
 
-	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("commands.go - AddFeedHandler() | An error has ocurred trying to get the user.\nError: %w", err)
-	}
-
 	feed, err := s.Db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
@@ -214,11 +209,6 @@ func HandlerFollow(s *State, cmd Command, user database.User) error {
 		return fmt.Errorf("commands.go - HandlerFollow() | The command must include an URL argument")
 	}
 
-	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("commands.go - HandlerFollow() | An error has ocurred trying to get the user by name")
-	}
-
 	feed, err := s.Db.GetFeedByUrl(context.Background(), cmd.Args[0])
 	if err != nil {
 		return fmt.Errorf("commands.go - HandlerFollow() | An error has ocurred trying to get the URL")
@@ -239,11 +229,6 @@ func HandlerFollow(s *State, cmd Command, user database.User) error {
 }
 
 func HandlerFollowing(s *State, cmd Command, user database.User) error {
-	user, err := s.Db.GetUser(context.Background(), s.Cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("commands.go - HandlerFollowing | An error has ocurred trying to get the user by name")
-	}
-
 	feedFollows, err := s.Db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return fmt.Errorf("commands.go - HandlerFollowing | An error has ocurred trying to get feed follows for user with ID %v", user.ID)
@@ -261,4 +246,8 @@ func HandlerFollowing(s *State, cmd Command, user database.User) error {
 	fmt.Println(user.Name)
 
 	return nil
+}
+
+func HandlerUnfollow(s *State, cmd Command, user database.User) error {
+
 }
