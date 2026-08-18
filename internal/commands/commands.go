@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -148,6 +149,7 @@ func Agg(s *State, cmd Command) error {
 	fmt.Printf("Collecting feeds every %v\n", timeBetweenRequests)
 	ticker := time.NewTicker(timeBetweenRequests)
 	for ; ; <-ticker.C {
+		println("Fetching")
 		scrapeFeeds(s)
 	}
 }
@@ -297,8 +299,58 @@ func scrapeFeeds(s *State) {
 	}
 
 	for _, item := range feed.Channel.Item {
-		fmt.Println(item.Title)
+		publishedAt, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			fmt.Printf("An error has ocurred trying to parse publish date")
+		}
+
+		if _, err := s.Db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: true},
+			PublishedAt: sql.NullTime{Time: publishedAt, Valid: true},
+			FeedID:      nextFeed.ID,
+		}); err != nil {
+			if pqNotUniqueErr := pq.As(err, pqerror.UniqueViolation); pqNotUniqueErr != nil {
+				continue
+			}
+			fmt.Printf("An error has ocurred during the %v srapping.\nError: %v", err)
+			continue
+		}
+
+		fmt.Println("Post saved")
 	}
 
 	fmt.Println()
+}
+
+func HandlerBrowse(s *State, cmd Command, user database.User) error {
+	var limit int32
+	if len(cmd.Args) == 0 {
+		limit = 2
+	} else {
+		strToInt, err := strconv.ParseInt(cmd.Args[0], 10, 32)
+		if err != nil {
+			return fmt.Errorf("commands.go - HandlerBrowse | Argument must be an integer")
+		}
+
+		limit = int32(strToInt)
+	}
+
+	posts, err := s.Db.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	})
+	if err != nil {
+		return fmt.Errorf("commands.go - HandlerBrowse | An error has ocurred trying to Get Post by user")
+	}
+
+	for _, post := range posts {
+		fmt.Println(post.Title)
+	}
+
+	return nil
 }
